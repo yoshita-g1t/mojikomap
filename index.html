@@ -6,11 +6,12 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 html,body{height:100%;margin:0;}
-#map{position:absolute;top:0;bottom:0;left:0;right:200px;}
-#menu{position:absolute;top:0;bottom:0;right:0;width:200px;background:#fff;padding:10px;overflow-y:auto;}
+#map{position:absolute;top:0;bottom:0;left:0;right:0;}
+#menu{position:absolute;top:10px;right:10px;width:200px;background:rgba(255,255,255,0.9);padding:10px;overflow-y:auto;border-radius:4px;box-shadow:0 0 5px rgba(0,0,0,0.3);z-index:1000;}
 .tab-buttons button{margin-right:5px;}
-#memoDialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:10px;border:1px solid #666;z-index:1000;display:none;}
-.leaflet-div-icon{width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);text-align:center;line-height:20px;border:2px solid #fff;font-size:12px;color:#000;}
+#memoDialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:10px;border:1px solid #666;z-index:2000;display:none;}
+.leaflet-div-icon.marker{width:24px;height:24px;position:relative;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;}
+.leaflet-div-icon.marker:after{content:'';position:absolute;top:50%;left:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#fff;}
 .marker-restaurant{background:#FFC90E;}
 .marker-historic{background:#F02DFF;}
 .marker-art{background:#1BFF7A;}
@@ -55,11 +56,11 @@ const memoCancel=document.getElementById('memoCancel');
 let currentCoord=null,currentType=null;
 const memoStore=JSON.parse(localStorage.getItem('memoStore')||'{}');
 const icons={
-  restaurant:L.divIcon({className:'marker-restaurant'}),
-  historic:L.divIcon({className:'marker-historic'}),
-  art:L.divIcon({className:'marker-art'}),
-  shelter:L.divIcon({className:'marker-shelter'}),
-  memo:L.divIcon({className:'marker-memo'})
+  restaurant:L.divIcon({className:'marker marker-restaurant'}),
+  historic:L.divIcon({className:'marker marker-historic'}),
+  art:L.divIcon({className:'marker marker-art'}),
+  shelter:L.divIcon({className:'marker marker-shelter'}),
+  memo:L.divIcon({className:'marker marker-memo'})
 };
 const layers={
   restaurant:L.layerGroup().addTo(map),
@@ -96,7 +97,9 @@ function loadHistoric(){overpassQuery('node["historic"]',layers.historic,icons.h
 function loadArt(){overpassQuery('node["tourism"="artwork"]',layers.art,icons.art);}
 function loadShelter(){
   const b=map.getBounds();
-  const bbox=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  const sw=b.getSouthWest();
+  const ne=b.getNorthEast();
+  const bbox=`${sw.lng},${sw.lat},${ne.lng},${ne.lat}`;
   const url='https://wapi.bodik.jp/v1/kyoto-city/shelter.geojson?bbox='+bbox;
   fetch(url).then(r=>r.json()).then(j=>{
     layers.shelter.clearLayers();
