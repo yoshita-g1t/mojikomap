@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Mojiko Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+html,body{height:100%;margin:0;}
+#map{position:absolute;top:0;bottom:0;left:0;right:200px;}
+#menu{position:absolute;top:0;bottom:0;right:0;width:200px;background:#fff;padding:10px;overflow-y:auto;}
+.tab-buttons button{margin-right:5px;}
+#memoDialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:10px;border:1px solid #666;z-index:1000;display:none;}
+.leaflet-div-icon{width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);text-align:center;line-height:20px;border:2px solid #fff;font-size:12px;color:#000;}
+.marker-restaurant{background:#FFC90E;}
+.marker-historic{background:#F02DFF;}
+.marker-art{background:#1BFF7A;}
+.marker-shelter{background:#FF0000;}
+.marker-memo{background:#00C8FF;}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="menu">
+  <div class="tab-buttons">
+    <button id="tourismTab">観光モード</button>
+    <button id="evacTab">避難モード</button>
+  </div>
+  <div id="tourismMenu">
+    <label><input type="checkbox" id="chkRestaurant" checked><span style="color:#FFC90E">飲食店</span></label><br>
+    <label><input type="checkbox" id="chkHistoric" checked><span style="color:#F02DFF">史跡</span></label><br>
+    <label><input type="checkbox" id="chkArt" checked><span style="color:#1BFF7A">アート</span></label>
+  </div>
+  <div id="evacMenu" style="display:none;">
+    <label><input type="checkbox" id="chkShelter" checked><span style="color:#FF0000">指定避難場所</span></label>
+  </div>
+  <button id="saveView">初期位置にする</button>
+  <button id="resetView">リセット</button>
+</div>
+<div id="memoDialog">
+  <textarea id="memoText" rows="4" cols="30"></textarea><br>
+  <button id="memoSave">保存</button>
+  <button id="memoCancel">キャンセル</button>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+const defaultView={lat:33.948,lng:130.96,zoom:15};
+const savedView=JSON.parse(localStorage.getItem('startView'))||defaultView;
+const map=L.map('map').setView([savedView.lat,savedView.lng],savedView.zoom);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+const memoDialog=document.getElementById('memoDialog');
+const memoText=document.getElementById('memoText');
+const memoSave=document.getElementById('memoSave');
+const memoCancel=document.getElementById('memoCancel');
+let currentCoord=null,currentType=null;
+const memoStore=JSON.parse(localStorage.getItem('memoStore')||'{}');
+const icons={
+  restaurant:L.divIcon({className:'marker-restaurant'}),
+  historic:L.divIcon({className:'marker-historic'}),
+  art:L.divIcon({className:'marker-art'}),
+  shelter:L.divIcon({className:'marker-shelter'}),
+  memo:L.divIcon({className:'marker-memo'})
+};
+const layers={
+  restaurant:L.layerGroup().addTo(map),
+  historic:L.layerGroup().addTo(map),
+  art:L.layerGroup().addTo(map),
+  shelter:L.layerGroup().addTo(map),
+  memo:L.layerGroup().addTo(map),
+  route:L.polyline([],{color:'red',weight:5})
+};
+map.on('moveend',updatePOIs);
+function updatePOIs(){
+  if(document.getElementById('chkRestaurant').checked && tourismActive()) loadRestaurants();
+  if(document.getElementById('chkHistoric').checked && tourismActive()) loadHistoric();
+  if(document.getElementById('chkArt').checked && tourismActive()) loadArt();
+  if(document.getElementById('chkShelter').checked && evacActive()) loadShelter();
+}
+function tourismActive(){return document.getElementById('tourismMenu').style.display!=='none';}
+function evacActive(){return document.getElementById('evacMenu').style.display!=='none';}
+function overpassQuery(query,layer,icon){
+  const b=map.getBounds();
+  const bbox=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  const url='https://overpass-api.de/api/interpreter?data='+encodeURIComponent(`[out:json];${query}( ${bbox} );out center;`);
+  fetch(url).then(r=>r.json()).then(d=>{
+    layer.clearLayers();
+    d.elements.forEach(el=>{
+      const lat=el.lat||el.center.lat;const lon=el.lon||el.center.lon;
+      const m=L.marker([lat,lon],{icon:icon}).on('click',()=>openMemo([lat,lon]));
+      layer.addLayer(m);
+    });
+  }).catch(()=>{});
+}
+function loadRestaurants(){overpassQuery('node["amenity"~"restaurant|cafe|fast_food|bar"]',layers.restaurant,icons.restaurant);}
+function loadHistoric(){overpassQuery('node["historic"]',layers.historic,icons.historic);}
+function loadArt(){overpassQuery('node["tourism"="artwork"]',layers.art,icons.art);}
+function loadShelter(){
+  const b=map.getBounds();
+  const bbox=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  const url='https://wapi.bodik.jp/v1/kyoto-city/shelter.geojson?bbox='+bbox;
+  fetch(url).then(r=>r.json()).then(j=>{
+    layers.shelter.clearLayers();
+    j.features.forEach(f=>{
+      const c=f.geometry.coordinates;const lat=c[1],lon=c[0];
+      const m=L.marker([lat,lon],{icon:icons.shelter}).on('click',()=>openMemo([lat,lon]));
+      layers.shelter.addLayer(m);
+    });
+  }).catch(()=>{});
+}
+function openMemo(coord){
+  currentCoord=coord;
+  memoText.value=memoStore[coord.join(',')]||'';
+  memoDialog.style.display='block';
+}
+memoSave.onclick=function(){
+  if(currentCoord){
+    memoStore[currentCoord.join(',')]=memoText.value;
+    localStorage.setItem('memoStore',JSON.stringify(memoStore));
+    let existing=null;
+    layers.memo.eachLayer(l=>{if(l.getLatLng().lat===currentCoord[0]&&l.getLatLng().lng===currentCoord[1]) existing=l;});
+    if(!existing){
+      const m=L.marker(currentCoord,{icon:icons.memo}).on('click',()=>alert(memoStore[currentCoord.join(',')]||''));
+      layers.memo.addLayer(m);
+    }
+  }
+  memoDialog.style.display='none';
+};
+memoCancel.onclick=function(){memoDialog.style.display='none';};
+map.on('click',function(e){
+  const latlng=[e.latlng.lat,e.latlng.lng];
+  let clickedMarker=false;
+  map.eachLayer(l=>{if(l instanceof L.Marker&&l.getLatLng().equals(e.latlng))clickedMarker=true;});
+  if(clickedMarker)return;
+  if(tourismActive()){
+    openMemo(latlng);
+  }else if(evacActive()){
+    if(!layers.shelter.getLayers().length)return;
+    let nearest=null,dist=Infinity;
+    layers.shelter.eachLayer(l=>{
+      const d=map.distance(e.latlng,l.getLatLng());
+      if(d<dist){dist=d;nearest=l;}
+    });
+    if(nearest){
+      layers.route.setLatLngs([e.latlng,nearest.getLatLng()]).addTo(map);
+    }
+  }
+});
+updatePOIs();
+function restoreMemos(){
+  Object.keys(memoStore).forEach(k=>{
+    const p=k.split(',').map(Number);
+    const m=L.marker(p,{icon:icons.memo}).on('click',()=>alert(memoStore[k]||''));
+    layers.memo.addLayer(m);
+  });
+}
+restoreMemos();
+// checkbox events
+['chkRestaurant','chkHistoric','chkArt'].forEach(id=>{
+ document.getElementById(id).addEventListener('change',function(){
+   const layer=layers[id.replace('chk','').toLowerCase()];
+   if(this.checked){map.addLayer(layer);loadPOIbyId(id);}else map.removeLayer(layer);
+ });
+});
+document.getElementById('chkShelter').addEventListener('change',function(){
+  if(this.checked){map.addLayer(layers.shelter);loadShelter();}else map.removeLayer(layers.shelter);
+});
+function loadPOIbyId(id){if(id==='chkRestaurant')loadRestaurants();if(id==='chkHistoric')loadHistoric();if(id==='chkArt')loadArt();}
+// tab events
+const tourismTab=document.getElementById('tourismTab');
+const evacTab=document.getElementById('evacTab');
+tourismTab.onclick=function(){
+  document.getElementById('tourismMenu').style.display='block';
+  document.getElementById('evacMenu').style.display='none';
+  map.removeLayer(layers.route);
+  if(document.getElementById('chkShelter').checked) map.removeLayer(layers.shelter);
+  if(document.getElementById('chkRestaurant').checked) map.addLayer(layers.restaurant);
+  if(document.getElementById('chkHistoric').checked) map.addLayer(layers.historic);
+  if(document.getElementById('chkArt').checked) map.addLayer(layers.art);
+  updatePOIs();
+};
+evacTab.onclick=function(){
+  document.getElementById('tourismMenu').style.display='none';
+  document.getElementById('evacMenu').style.display='block';
+  map.removeLayer(layers.restaurant);
+  map.removeLayer(layers.historic);
+  map.removeLayer(layers.art);
+  if(document.getElementById('chkShelter').checked) map.addLayer(layers.shelter); else map.removeLayer(layers.shelter);
+  updatePOIs();
+};
+// initial tab: tourism
+tourismTab.click();
+// buttons
+ document.getElementById('saveView').onclick=function(){
+   const c=map.getCenter();
+   localStorage.setItem('startView',JSON.stringify({lat:c.lat,lng:c.lng,zoom:map.getZoom()}));
+ };
+ document.getElementById('resetView').onclick=function(){
+   localStorage.removeItem('startView');
+   map.setView([defaultView.lat,defaultView.lng],defaultView.zoom);
+ };
+})();
+</script>
+</body>
+</html>
