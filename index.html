@@ -11,29 +11,21 @@ html,body{height:100%;margin:0;}
 .tab-buttons button{margin-right:5px;}
 #memoDialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:10px;border:1px solid #666;z-index:2000;display:none;}
 .leaflet-div-icon.pin{
-  position:relative;
   width:24px;
   height:24px;
-  background:currentColor;
-  border-radius:50% 50% 50% 0;
-  transform:rotate(-90deg);
+  background:none;
+  border:none;
 }
-.leaflet-div-icon.pin::after{
-  content:'';
-  position:absolute;
-  top:50%;
-  left:50%;
-  width:12px;
-  height:12px;
-  background:#fff;
-  border-radius:50%;
-  transform:translate(-50%,-50%) rotate(90deg);
+.leaflet-div-icon.pin svg{
+  display:block;
+  transform-origin:50% 100%;
+  transform:rotate(-45deg);
 }
-.pin-restaurant{background:#FFC90E;color:#FFC90E;}
-.pin-historic{background:#F02DFF;color:#F02DFF;}
-.pin-art{background:#1BFF7A;color:#1BFF7A;}
-.pin-shelter{background:#FF0000;color:#FF0000;}
-.pin-memo{background:#00C8FF;color:#00C8FF;}
+.pin-restaurant{color:#FFC90E;}
+.pin-historic{color:#F02DFF;}
+.pin-art{color:#1BFF7A;}
+.pin-shelter{color:#FF0000;}
+.pin-memo{color:#00C8FF;}
 #chkRestaurant{accent-color:#FFC90E;}
 #chkHistoric{accent-color:#F02DFF;}
 #chkArt{accent-color:#1BFF7A;}
@@ -76,13 +68,16 @@ const memoSave=document.getElementById('memoSave');
 const memoCancel=document.getElementById('memoCancel');
 let currentCoord=null,currentType=null;
 const memoStore=JSON.parse(localStorage.getItem('memoStore')||'{}');
+const pinSvg='<svg viewBox="0 0 24 24" width="24" height="24">'+
+  '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/>'+
+  '<circle cx="12" cy="9" r="3" fill="white"/></svg>';
 const iconOpts={iconSize:[24,24],iconAnchor:[12,24]};
 const icons={
-  restaurant:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-restaurant'}),
-  historic:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-historic'}),
-  art:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-art'}),
-  shelter:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-shelter'}),
-  memo:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-memo'})
+  restaurant:L.divIcon({...iconOpts,html:pinSvg,className:'leaflet-div-icon pin pin-restaurant'}),
+  historic:L.divIcon({...iconOpts,html:pinSvg,className:'leaflet-div-icon pin pin-historic'}),
+  art:L.divIcon({...iconOpts,html:pinSvg,className:'leaflet-div-icon pin pin-art'}),
+  shelter:L.divIcon({...iconOpts,html:pinSvg,className:'leaflet-div-icon pin pin-shelter'}),
+  memo:L.divIcon({...iconOpts,html:pinSvg,className:'leaflet-div-icon pin pin-memo'})
 };
 const layers={
   restaurant:L.layerGroup().addTo(map),
