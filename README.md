@@ -1,0 +1,2 @@
+# mojikomap
+mojiko syuhen map
