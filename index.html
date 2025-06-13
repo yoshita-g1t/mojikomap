@@ -61,11 +61,11 @@ let currentCoord=null,currentType=null;
 const memoStore=JSON.parse(localStorage.getItem('memoStore')||'{}');
 const iconOpts={iconSize:[20,20],iconAnchor:[10,10]};
 const icons={
-  restaurant:L.divIcon({...iconOpts,className:'pin pin-restaurant'}),
-  historic:L.divIcon({...iconOpts,className:'pin pin-historic'}),
-  art:L.divIcon({...iconOpts,className:'pin pin-art'}),
-  shelter:L.divIcon({...iconOpts,className:'pin pin-shelter'}),
-  memo:L.divIcon({...iconOpts,className:'pin pin-memo'})
+  restaurant:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-restaurant'}),
+  historic:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-historic'}),
+  art:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-art'}),
+  shelter:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-shelter'}),
+  memo:L.divIcon({...iconOpts,className:'leaflet-div-icon pin pin-memo'})
 };
 const layers={
   restaurant:L.layerGroup().addTo(map),
