@@ -14,7 +14,7 @@ html,body{height:100%;margin:0;}
 .marker-restaurant{background:#FFC90E;}
 .marker-historic{background:#F02DFF;}
 .marker-art{background:#1BFF7A;}
-.marker-shelter{background:#FF0000;}
+.marker-shelter{background:#FF0000;border-radius:0;transform:none;clip-path:polygon(50% 0%,0% 100%,100% 100%);}
 .marker-memo{background:#00C8FF;}
 </style>
 </head>
@@ -42,6 +42,7 @@ html,body{height:100%;margin:0;}
   <button id="memoCancel">キャンセル</button>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
 (function(){
 const defaultView={lat:33.948,lng:130.96,zoom:15};
@@ -95,12 +96,47 @@ function loadRestaurants(){overpassQuery('node["amenity"~"restaurant|cafe|fast_f
 function loadHistoric(){overpassQuery('node["historic"]',layers.historic,icons.historic);}
 function loadArt(){overpassQuery('node["tourism"="artwork"]',layers.art,icons.art);}
 function loadShelter(){
-  overpassQuery('node["amenity"="shelter"]', layers.shelter, icons.shelter);
+  const b=map.getBounds();
+  console.log('現在の表示範囲:', b.toString());
+  $.ajax({
+    url: 'https://data.bodik.jp/api/3/action/datastore_search',
+    dataType: 'jsonp',
+    data: {
+      resource_id: '4829da84-5cb4-46d5-a6b0-0130359da105',
+      limit: 1000
+    },
+    success: ({ result }) => {
+      console.log('取得した避難所データ数:', result.records.length);
+      layers.shelter.clearLayers();
+      result.records.forEach(record => {
+        const lat = parseFloat(record.緯度);
+        const lon = parseFloat(record.経度);
+        console.log('避難所:', record.名称, '座標:', lat, lon);
+        // 座標チェックを緩和
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const m = L.marker([lat, lon], {icon: icons.shelter})
+            .on('click', () => {
+              const info = `
+                名称: ${record.名称}<br>
+                住所: ${record.所在地}<br>
+                指定区分: ${record.指定区分}<br>
+                収容人数: ${record.収容人数}人
+              `;
+              openMemo([lat, lon], info);
+            });
+          layers.shelter.addLayer(m);
+        }
+      });
+    },
+    error: (error) => {
+      console.error('BODIK API エラー:', error);
+    }
+  });
 }
-function openMemo(coord){
-  currentCoord=coord;
-  memoText.value=memoStore[coord.join(',')]||'';
-  memoDialog.style.display='block';
+function openMemo(coord, info = '') {
+  currentCoord = coord;
+  memoText.value = info || memoStore[coord.join(',')] || '';
+  memoDialog.style.display = 'block';
 }
 memoSave.onclick=function(){
   if(currentCoord){
@@ -131,7 +167,34 @@ map.on('click',function(e){
       if(d<dist){dist=d;nearest=l;}
     });
     if(nearest){
-      layers.route.setLatLngs([e.latlng,nearest.getLatLng()]).addTo(map);
+      // OSRMを使用してルートを取得
+      const start = `${e.latlng.lng},${e.latlng.lat}`;
+      const end = `${nearest.getLatLng().lng},${nearest.getLatLng().lat}`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson`;
+      
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+            layers.route.setLatLngs(coordinates).addTo(map);
+            
+            // ルートの距離と所要時間を表示
+            const distance = (route.distance / 1000).toFixed(1);
+            const duration = Math.round(route.duration / 60);
+            const info = `
+              避難所までの距離: ${distance}km<br>
+              所要時間: 約${duration}分
+            `;
+            openMemo(nearest.getLatLng(), info);
+          }
+        })
+        .catch(error => {
+          console.error('ルート取得エラー:', error);
+          // エラー時は直線を表示
+          layers.route.setLatLngs([e.latlng, nearest.getLatLng()]).addTo(map);
+        });
     }
   }
 });
