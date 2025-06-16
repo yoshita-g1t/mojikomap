@@ -10,7 +10,7 @@ html,body{height:100%;margin:0;}
 #menu{position:absolute;top:0;bottom:0;right:0;width:200px;background:#fff;padding:10px;overflow-y:auto;}
 .tab-buttons button{margin-right:5px;}
 #memoDialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:10px;border:1px solid #666;z-index:1000;display:none;}
-.leaflet-div-icon{width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);text-align:center;line-height:20px;border:2px solid #fff;font-size:12px;color:#000;}
+.leaflet-div-icon{width:20px;height:20px;border-radius:50% 50% 0 50%;transform:rotate(45deg);text-align:center;line-height:20px;border:2px solid #fff;font-size:12px;color:#000;}
 .marker-restaurant{background:#FFC90E;}
 .marker-historic{background:#F02DFF;}
 .marker-art{background:#1BFF7A;}
@@ -95,17 +95,7 @@ function loadRestaurants(){overpassQuery('node["amenity"~"restaurant|cafe|fast_f
 function loadHistoric(){overpassQuery('node["historic"]',layers.historic,icons.historic);}
 function loadArt(){overpassQuery('node["tourism"="artwork"]',layers.art,icons.art);}
 function loadShelter(){
-  const b=map.getBounds();
-  const bbox=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
-  const url='https://wapi.bodik.jp/v1/kyoto-city/shelter.geojson?bbox='+bbox;
-  fetch(url).then(r=>r.json()).then(j=>{
-    layers.shelter.clearLayers();
-    j.features.forEach(f=>{
-      const c=f.geometry.coordinates;const lat=c[1],lon=c[0];
-      const m=L.marker([lat,lon],{icon:icons.shelter}).on('click',()=>openMemo([lat,lon]));
-      layers.shelter.addLayer(m);
-    });
-  }).catch(()=>{});
+  overpassQuery('node["amenity"="shelter"]', layers.shelter, icons.shelter);
 }
 function openMemo(coord){
   currentCoord=coord;
