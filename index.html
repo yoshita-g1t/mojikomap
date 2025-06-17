@@ -14,7 +14,7 @@ html,body{height:100%;margin:0;}
 .marker-restaurant{background:#FFC90E;}
 .marker-historic{background:#F02DFF;}
 .marker-art{background:#1BFF7A;}
-.marker-shelter{background:#FF0000;border-radius:0;transform:none;clip-path:polygon(50% 0%,0% 100%,100% 100%);}
+.marker-shelter{background:#FF0000;}
 .marker-memo{background:#00C8FF;}
 </style>
 </head>
@@ -100,13 +100,10 @@ function loadShelter(){
   console.log('現在の表示範囲:', b.toString());
   $.ajax({
     url: 'https://data.bodik.jp/api/3/action/datastore_search',
-    dataType: 'json',
+    dataType: 'jsonp',
     data: {
       resource_id: '4829da84-5cb4-46d5-a6b0-0130359da105',
       limit: 1000
-    },
-    headers: {
-      'Accept': 'application/json'
     },
     success: ({ result }) => {
       console.log('取得した避難所データ数:', result.records.length);
@@ -132,25 +129,6 @@ function loadShelter(){
     },
     error: (error) => {
       console.error('BODIK API エラー:', error);
-      // エラー時のフォールバックとして、サンプルデータを表示
-      const sampleShelters = [
-        { 名称: '門司港レトロハイマート', 緯度: 33.948, 経度: 130.96, 所在地: '北九州市門司区', 指定区分: '指定緊急避難場所', 収容人数: '100' },
-        { 名称: '門司港レトロ展望室', 緯度: 33.947, 経度: 130.961, 所在地: '北九州市門司区', 指定区分: '指定緊急避難場所', 収容人数: '50' }
-      ];
-      layers.shelter.clearLayers();
-      sampleShelters.forEach(record => {
-        const m = L.marker([record.緯度, record.経度], {icon: icons.shelter})
-          .on('click', () => {
-            const info = `
-              名称: ${record.名称}<br>
-              住所: ${record.所在地}<br>
-              指定区分: ${record.指定区分}<br>
-              収容人数: ${record.収容人数}人
-            `;
-            openMemo([record.緯度, record.経度], info);
-          });
-        layers.shelter.addLayer(m);
-      });
     }
   });
 }
