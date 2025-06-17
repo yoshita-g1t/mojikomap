@@ -103,7 +103,8 @@ function loadShelter(){
     dataType: 'jsonp',
     data: {
       resource_id: '4829da84-5cb4-46d5-a6b0-0130359da105',
-      limit: 1000
+      limit: 1000,
+      q: ''
     },
     success: ({ result }) => {
       console.log('取得した避難所データ数:', result.records.length);
