@@ -182,7 +182,16 @@ map.on('click',function(e){
       if(d<dist){dist=d;nearest=l;}
     });
     if(nearest){
-      layers.route.setLatLngs([e.latlng,nearest.getLatLng()]).addTo(map);
+      const from=e.latlng;
+      const to=nearest.getLatLng();
+      const rurl=`https://router.project-osrm.org/route/v1/foot/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
+      console.log('Route API:',rurl);
+      fetch(rurl).then(r=>r.json()).then(d=>{
+        const coords=d.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+        layers.route.setLatLngs(coords).addTo(map);
+      }).catch(()=>{
+        layers.route.setLatLngs([from,to]).addTo(map);
+      });
     }
   }
 });
