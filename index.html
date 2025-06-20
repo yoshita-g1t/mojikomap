@@ -118,16 +118,15 @@ function loadRestaurants(){overpassQuery('node["amenity"~"restaurant|cafe|fast_f
 function loadHistoric(){overpassQuery('node["historic"]',layers.historic,icons.historic);}
 function loadArt(){overpassQuery('node["tourism"="artwork"]',layers.art,icons.art);}
 function loadShelter(){
-  const b=map.getBounds();
-  const sw=b.getSouthWest();
-  const ne=b.getNorthEast();
-  const bbox=`${sw.lng},${sw.lat},${ne.lng},${ne.lat}`;
-  const url='https://wapi.bodik.jp/api/v1/shelter.geojson?bbox='+bbox;
+  const url='https://data.bodik.jp/api/3/action/datastore_search?resource_id=4829da84-5cb4-46d5-a6b0-0130359da105&limit=10000';
   fetch(url).then(r=>{console.log('Shelter API:',url);return r.json();}).then(j=>{
     layers.shelter.clearLayers();
-    j.features.forEach(f=>{
-      const c=f.geometry.coordinates;const lat=c[1],lon=c[0];
-      const name=f.properties&& (f.properties.name||f.properties['\u540d\u79f0'])? (f.properties.name||f.properties['\u540d\u79f0']) : '';
+    const recs=(j.result&&j.result.records)||[];
+    recs.forEach(rec=>{
+      const lat=parseFloat(rec.lat||rec.latitude||rec['\u7def\u5ea6']||rec['\u7def\u5ea6(\u5343\u5206\u7def)']||rec['\u7def\u5ea6(\u5ea7\u6a19)']||(rec.geometry&&rec.geometry.coordinates[1]));
+      const lon=parseFloat(rec.lon||rec.longitude||rec['\u7d4c\u5ea6']||rec['\u7d4c\u5ea6(\u5343\u5206\u7def)']||rec['\u7d4c\u5ea6(\u5ea7\u6a19)']||(rec.geometry&&rec.geometry.coordinates[0]));
+      if(isNaN(lat)||isNaN(lon))return;
+      const name=rec.name||rec['\u540d\u79f0']||'';
       const m=L.marker([lat,lon],{icon:icons.shelter}).on('click',()=>openMemo([lat,lon],name));
       layers.shelter.addLayer(m);
     });
