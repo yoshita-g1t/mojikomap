@@ -7,7 +7,8 @@
 <style>
 html,body{height:100%;margin:0;}
 #map{position:absolute;top:0;bottom:0;left:0;right:0;}
-#menu{position:absolute;top:10px;right:10px;width:200px;background:rgba(255,255,255,0.9);padding:10px;overflow-y:auto;border-radius:4px;box-shadow:0 0 5px rgba(0,0,0,0.3);z-index:1000;}
+#modeSwitch{position:absolute;top:10px;left:10px;background:rgba(255,255,255,0.9);padding:5px;border-radius:4px;box-shadow:0 0 5px rgba(0,0,0,0.3);z-index:1000;}
+#menu{position:absolute;top:60px;left:10px;width:200px;background:rgba(255,255,255,0.9);padding:10px;overflow-y:auto;border-radius:4px;box-shadow:0 0 5px rgba(0,0,0,0.3);z-index:1000;}
 .tab-buttons button{margin-right:5px;}
 #memoDialog{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:10px;border:1px solid #666;z-index:2000;display:none;}
 .leaflet-div-icon.pin{
@@ -35,11 +36,11 @@ html,body{height:100%;margin:0;}
 </head>
 <body>
 <div id="map"></div>
+<div id="modeSwitch" class="tab-buttons">
+  <button id="tourismTab">観光モード</button>
+  <button id="evacTab">避難モード</button>
+</div>
 <div id="menu">
-  <div class="tab-buttons">
-    <button id="tourismTab">観光モード</button>
-    <button id="evacTab">避難モード</button>
-  </div>
   <div id="tourismMenu">
     <label><input type="checkbox" id="chkRestaurant" checked><span style="color:#FFC90E">飲食店</span></label><br>
     <label><input type="checkbox" id="chkHistoric" checked><span style="color:#F02DFF">史跡</span></label><br>
