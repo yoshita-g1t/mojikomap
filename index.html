@@ -114,12 +114,24 @@ function overpassQuery(query,layer,icon){
     });
   }).catch(()=>{});
 }
+function jsonp(url){
+  return new Promise((resolve,reject)=>{
+    const cb='cb'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+    script.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
+    window[cb]=data=>{resolve(data);cleanup();};
+    script.onerror=()=>{reject(new Error('JSONP failed'));cleanup();};
+    function cleanup(){delete window[cb];script.remove();}
+    document.head.appendChild(script);
+  });
+}
 function loadRestaurants(){overpassQuery('node["amenity"~"restaurant|cafe|fast_food|bar"]',layers.restaurant,icons.restaurant);}
 function loadHistoric(){overpassQuery('node["historic"]',layers.historic,icons.historic);}
 function loadArt(){overpassQuery('node["tourism"="artwork"]',layers.art,icons.art);}
 function loadShelter(){
   const url='https://data.bodik.jp/api/3/action/datastore_search?resource_id=4829da84-5cb4-46d5-a6b0-0130359da105&limit=10000';
-  fetch(url).then(r=>{console.log('Shelter API:',url);return r.json();}).then(j=>{
+  console.log('Shelter API:',url);
+  jsonp(url).then(j=>{
     layers.shelter.clearLayers();
     const recs=(j.result&&j.result.records)||[];
     recs.forEach(rec=>{
