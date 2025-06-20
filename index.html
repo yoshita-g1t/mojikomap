@@ -53,6 +53,7 @@ html,body{height:100%;margin:0;}
   <button id="resetView">リセット</button>
 </div>
 <div id="memoDialog">
+  <div id="memoName" style="margin-bottom:4px;font-weight:bold;"></div>
   <textarea id="memoText" rows="4" cols="30"></textarea><br>
   <button id="memoSave">保存</button>
   <button id="memoCancel">キャンセル</button>
@@ -65,10 +66,11 @@ const savedView=JSON.parse(localStorage.getItem('startView'))||defaultView;
 const map=L.map('map').setView([savedView.lat,savedView.lng],savedView.zoom);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 const memoDialog=document.getElementById('memoDialog');
+const memoName=document.getElementById('memoName');
 const memoText=document.getElementById('memoText');
 const memoSave=document.getElementById('memoSave');
 const memoCancel=document.getElementById('memoCancel');
-let currentCoord=null,currentType=null;
+let currentCoord=null,currentType=null,currentName='';
 const memoStore=JSON.parse(localStorage.getItem('memoStore')||'{}');
 const pinSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">'+
   '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor"/>'+
@@ -106,7 +108,8 @@ function overpassQuery(query,layer,icon){
     layer.clearLayers();
     d.elements.forEach(el=>{
       const lat=el.lat||el.center.lat;const lon=el.lon||el.center.lon;
-      const m=L.marker([lat,lon],{icon:icon}).on('click',()=>openMemo([lat,lon]));
+      const name=el.tags&&el.tags.name?el.tags.name:'';
+      const m=L.marker([lat,lon],{icon:icon}).on('click',()=>openMemo([lat,lon],name));
       layer.addLayer(m);
     });
   }).catch(()=>{});
@@ -120,17 +123,20 @@ function loadShelter(){
   const ne=b.getNorthEast();
   const bbox=`${sw.lng},${sw.lat},${ne.lng},${ne.lat}`;
   const url='https://wapi.bodik.jp/api/v1/shelter.geojson?bbox='+bbox;
-  fetch(url).then(r=>r.json()).then(j=>{
+  fetch(url).then(r=>{console.log('Shelter API:',url);return r.json();}).then(j=>{
     layers.shelter.clearLayers();
     j.features.forEach(f=>{
       const c=f.geometry.coordinates;const lat=c[1],lon=c[0];
-      const m=L.marker([lat,lon],{icon:icons.shelter}).on('click',()=>openMemo([lat,lon]));
+      const name=f.properties&& (f.properties.name||f.properties['\u540d\u79f0'])? (f.properties.name||f.properties['\u540d\u79f0']) : '';
+      const m=L.marker([lat,lon],{icon:icons.shelter}).on('click',()=>openMemo([lat,lon],name));
       layers.shelter.addLayer(m);
     });
   }).catch(()=>{});
 }
-function openMemo(coord){
+function openMemo(coord,name){
   currentCoord=coord;
+  currentName=name||'';
+  memoName.textContent=currentName;
   memoText.value=memoStore[coord.join(',')]||'';
   memoDialog.style.display='block';
 }
