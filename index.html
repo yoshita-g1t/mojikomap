@@ -129,9 +129,7 @@ function loadRestaurants(){overpassQuery('node["amenity"~"restaurant|cafe|fast_f
 function loadHistoric(){overpassQuery('node["historic"]',layers.historic,icons.historic);}
 function loadArt(){overpassQuery('node["tourism"="artwork"]',layers.art,icons.art);}
 function loadShelter(){
-  const b=map.getBounds();
-  const bbox=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
-  const url=`https://wapi.bodik.jp/api/3/action/datastore_search?resource_id=4829da84-5cb4-46d5-a6b0-0130359da105&bbox=${bbox}&limit=10000`;
+  const url='https://wapi.bodik.jp/api/3/action/datastore_search?resource_id=4829da84-5cb4-46d5-a6b0-0130359da105&limit=10000';
   console.log('Shelter API:',url);
   jsonp(url).then(j=>{
     layers.shelter.clearLayers();
